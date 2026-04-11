@@ -65,6 +65,16 @@
         transform: scale(1);
     }
 
+    .stamp.pop {
+        animation: popStamp 0.35s ease-out;
+    }
+
+    @keyframes popStamp {
+        0% { transform: scale(0.2); opacity: 0; }
+        60% { transform: scale(1.2); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
     .btn-cloud {
         background: white;
         color: black;
@@ -108,9 +118,24 @@
         z-index: 9998;
     }
 
+    .flash-gift {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,215,0,0.7));
+        pointer-events: none;
+        animation: flashGiftAnim 0.45s ease-out;
+        z-index: 9998;
+    }
+
     @keyframes flashAnim {
         from { opacity: 1; }
         to { opacity: 0; }
+    }
+
+    @keyframes flashGiftAnim {
+        0% { opacity: 0; }
+        30% { opacity: 1; }
+        100% { opacity: 0; }
     }
 
     .btn-burst.bam {
@@ -133,6 +158,29 @@
         0% { transform: scale(1) rotate(0deg); }
         50% { transform: scale(1.08) rotate(-3deg); }
         100% { transform: scale(1) rotate(0deg); }
+    }
+
+    .bubble {
+        position: fixed;
+        left: 50%;
+        top: 20%;
+        transform: translateX(-50%);
+        background: #fff;
+        color: #000;
+        border: 4px solid #000;
+        border-radius: 30px;
+        padding: 10px 20px;
+        font-weight: bold;
+        font-size: 22px;
+        box-shadow: 4px 4px 0 #000;
+        z-index: 10000;
+        animation: bubbleUp 0.6s ease-out forwards;
+    }
+
+    @keyframes bubbleUp {
+        0% { opacity: 0; transform: translate(-50%, 10px) scale(0.8); }
+        40% { opacity: 1; transform: translate(-50%, -5px) scale(1.05); }
+        100% { opacity: 0; transform: translate(-50%, -25px) scale(1); }
     }
 </style>
 </head>
@@ -205,6 +253,14 @@ function disableButtons(state) {
   });
 }
 
+function showBubble(text) {
+  const div = document.createElement("div");
+  div.className = "bubble";
+  div.textContent = text;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 650);
+}
+
 function bamEffect() {
   const flash = document.createElement("div");
   flash.className = "flash";
@@ -226,6 +282,28 @@ function bamEffect() {
   if (navigator.vibrate) {
     navigator.vibrate(80);
   }
+
+  showBubble("БАМС! +1 штамп");
+}
+
+function giftEffect() {
+  const flash = document.createElement("div");
+  flash.className = "flash-gift";
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 450);
+
+  const mascot = document.getElementById("mascot");
+  if (mascot) {
+    const prev = mascot.src;
+    mascot.src = MASCOT_SUPER;
+    setTimeout(() => { mascot.src = prev; }, 800);
+  }
+
+  if (navigator.vibrate) {
+    navigator.vibrate([80, 60, 80]);
+  }
+
+  showBubble("ПЫЩ! Подарок!");
 }
 
 function updateMascot(stamps) {
@@ -234,6 +312,7 @@ function updateMascot(stamps) {
 
   if (stamps >= 10) {
     mascot.src = MASCOT_SUPER;
+    showBubble("Герой дня!");
   } else if (stamps >= 7) {
     mascot.src = MASCOT_ANGRY;
   } else if (stamps >= 3) {
@@ -252,3 +331,100 @@ async function loadClient() {
     const data = await res.json();
 
     hideLoader();
+    disableButtons(false);
+
+    renderClient(data);
+  } catch (e) {
+    hideLoader();
+    disableButtons(false);
+    alert("Ошибка загрузки данных");
+  }
+}
+
+function renderClient(data) {
+  if (data.error) {
+    document.body.innerHTML = `
+      <div style="padding:40px; text-align:center; font-size:22px;">
+        <b>Клиент не найден</b><br><br>
+        Проверь QR‑код или ID
+      </div>
+    `;
+    return;
+  }
+
+  document.getElementById("clientName").innerText = data.name;
+  document.getElementById("clientPhone").innerText = data.phone;
+
+  const progress = document.getElementById("progress");
+  const oldStamps = progress.querySelectorAll(".stamp.active").length || 0;
+
+  progress.innerHTML = "";
+  for (let i = 0; i < 10; i++) {
+    const div = document.createElement("div");
+    let cls = "stamp";
+    if (i < data.stamps) cls += " active";
+    div.className = cls;
+    progress.appendChild(div);
+  }
+
+  if (data.stamps > oldStamps) {
+    const stamps = progress.querySelectorAll(".stamp");
+    const idx = data.stamps - 1;
+    if (stamps[idx]) {
+      stamps[idx].classList.add("pop");
+      setTimeout(() => stamps[idx].classList.remove("pop"), 400);
+    }
+  }
+
+  document.getElementById("points").innerText = data.points;
+  document.getElementById("cashback").innerText = Number(data.cashback).toFixed(2);
+  document.getElementById("qr").src = data.qr_code;
+
+  updateMascot(data.stamps);
+}
+
+async function addStamp() {
+  showLoader();
+  disableButtons(true);
+
+  try {
+    const res = await fetch(`${API}?action=addStamp&client_id=${clientId}`);
+    await res.json();
+
+    bamEffect();
+
+    hideLoader();
+    disableButtons(false);
+    loadClient();
+  } catch (e) {
+    hideLoader();
+    disableButtons(false);
+    alert("Ошибка при добавлении штампа");
+  }
+}
+
+async function giveGift() {
+  showLoader();
+  disableButtons(true);
+
+  try {
+    const res = await fetch(`${API}?action=giveGift&client_id=${clientId}`);
+    await res.json();
+
+    giftEffect();
+
+    hideLoader();
+    disableButtons(false);
+    loadClient();
+  } catch (e) {
+    hideLoader();
+    disableButtons(false);
+    alert("Ошибка при выдаче подарка");
+  }
+}
+
+loadClient();
+</script>
+
+</body>
+</html>
