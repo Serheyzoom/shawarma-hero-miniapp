@@ -6,7 +6,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-    body {
+    body 
+    <div id="loader" style="
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(255,255,255,0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: bold;
+  z-index: 9999;
+  display: none;
+">
+  Загружаем вкусняшки...
+</div>
+ {
         margin: 0;
         padding: 0;
         background: #1A1A1A;
@@ -127,64 +143,155 @@
 <button class="btn-burst" onclick="giveGift()">Получить подарок</button>
 
 <script>
-    const API = "https://script.google.com/macros/s/AKfycbxaMdVg6A1S1y4aXND3wLZvO_Vz_Nc7TcDrDcrmvLYiPpIrarY-5l6lujOCHjadZjjRNA/exec";
+   <script>
 
-    // Получаем client_id из Telegram Mini-App
-    const urlParams = new URLSearchParams(window.location.search);
-    const client_id = urlParams.get("id");
+const urlParams = new URLSearchParams(window.location.search);
+const clientId = urlParams.get("id");
+const API = "https://script.google.com/macros/s/AKfycbxaMdVg6A1S1y4aXND3wLZvO_Vz_Nc7TcDrDcrmvLYiPpIrarY-5l6lujOCHjadZjjRNA/exec";
 
-    function loadClient() {
-        fetch(`${API}?action=getClient&client_id=${client_id}`)
-            .then(r => r.json())
-            .then(data => {
-                if (data.error) {
-                    alert("Ошибка: клиент не найден");
-                    return;
-                }
+// ---------------- ЛОАДЕР ----------------
 
-                document.getElementById("name").innerText = data.name;
-                document.getElementById("phone").innerText = "Телефон: ****" + data.phone;
-                document.getElementById("points").innerText = data.points + " ⚡";
-                document.getElementById("cashback").innerText = data.cashback.toFixed(2) + " ₽";
-                document.getElementById("qr").src = data.qr_code;
+function showLoader() {
+  document.getElementById("loader").style.display = "flex";
+}
 
-                renderProgress(data.stamps);
-            });
-    }
+function hideLoader() {
+  document.getElementById("loader").style.display = "none";
+}
 
-    function renderProgress(stamps) {
-        const container = document.getElementById("progress");
-        container.innerHTML = "";
+// ---------------- БЛОКИРОВКА КНОПОК ----------------
 
-        for (let i = 0; i < 10; i++) {
-            const el = document.createElement("div");
-            el.classList.add("stamp");
-            if (i < stamps) el.classList.add("active");
-            container.appendChild(el);
-        }
-    }
+function disableButtons(state) {
+  document.querySelectorAll("button").forEach(btn => {
+    btn.disabled = state;
+    btn.style.opacity = state ? "0.5" : "1";
+  });
+}
 
-    function addStamp() {
-        fetch(`${API}?action=addStamp&client_id=${client_id}`)
-            .then(r => r.json())
-            .then(data => {
-                if (data.result === "gift") {
-                    alert("БАМС‑ФИНАЛ! Бесплатная шаурма!");
-                }
-                loadClient();
-            });
-    }
+// ---------------- ЗАГРУЗКА КЛИЕНТА ----------------
 
-    function giveGift() {
-        fetch(`${API}?action=giveGift&client_id=${client_id}`)
-            .then(r => r.json())
-            .then(data => {
-                alert(data.message);
-                loadClient();
-            });
-    }
+async function loadClient() {
+  showLoader();
+  disableButtons(true);
 
+  try {
+    const res = await fetch(`${API}?action=getClient&client_id=${clientId}`);
+    const data = await res.json();
+
+    hideLoader();
+    disableButtons(false);
+
+    renderClient(data);
+  } catch (e) {
+    hideLoader();
+    disableButtons(false);
+    alert("Ошибка загрузки данных");
+  }
+}
+
+// ---------------- ОТОБРАЖЕНИЕ ДАННЫХ ----------------
+
+function renderClient(data) {
+
+  if (data.error) {
+    document.body.innerHTML = `
+      <div style="padding:40px; text-align:center; font-size:22px;">
+        <b>Клиент не найден</b><br><br>
+        Проверь QR‑код или ID
+      </div>
+    `;
+    return;
+  }
+
+  document.getElementById("clientName").innerText = data.name;
+  document.getElementById("clientPhone").innerText = data.phone;
+  document.getElementById("stamps").innerText = data.stamps;
+  document.getElementById("points").innerText = data.points;
+  document.getElementById("cashback").innerText = data.cashback.toFixed(2);
+  document.getElementById("qr").src = data.qr_code;
+}
+
+// ---------------- ДЕЙСТВИЯ ----------------
+
+async function addStamp() {
+  showLoader();
+  disableButtons(true);
+
+  try {
+    const res = await fetch(`${API}?action=addStamp&client_id=${clientId}`);
+    await res.json();
+
+    hideLoader();
+    disableButtons(false);
     loadClient();
+  } catch (e) {
+    hideLoader();
+    disableButtons(false);
+    alert("Ошибка при добавлении штампа");
+  }
+}
+
+async function giveGift() {
+  showLoader();
+  disableButtons(true);
+
+  try {
+    const res = await fetch(`${API}?action=giveGift&client_id=${clientId}`);
+    await res.json();
+
+    hideLoader();
+    disableButtons(false);
+    loadClient();
+  } catch (e) {
+    hideLoader();
+    disableButtons(false);
+    alert("Ошибка при выдаче подарка");
+  }
+}
+
+async function addPoints(amount) {
+  showLoader();
+  disableButtons(true);
+
+  try {
+    const res = await fetch(`${API}?action=addPoints&client_id=${clientId}&amount=${amount}`);
+    await res.json();
+
+    hideLoader();
+    disableButtons(false);
+    loadClient();
+  } catch (e) {
+    hideLoader();
+    disableButtons(false);
+    alert("Ошибка при начислении баллов");
+  }
+}
+
+async function addCashback(amount) {
+  showLoader();
+  disableButtons(true);
+
+  try {
+    const res = await fetch(`${API}?action=addCashback&client_id=${clientId}&amount=${amount}`);
+    await res.json();
+
+    hideLoader();
+    disableButtons(false);
+    loadClient();
+  } catch (e) {
+    hideLoader();
+    disableButtons(false);
+    alert("Ошибка при начислении кешбэка");
+  }
+}
+
+// ---------------- СТАРТ ----------------
+
+loadClient();
+
+</script>
+
+
 </script>
 
 </body>
