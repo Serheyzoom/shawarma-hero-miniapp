@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шаурма‑Герой</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background: #1A1A1A;
+        font-family: 'Comic Sans MS', sans-serif;
+        color: white;
+        text-align: center;
+    }
+
+    .header {
+        padding: 20px;
+        background: radial-gradient(circle, #FFB300, #FF4D00);
+        color: black;
+        font-size: 26px;
+        font-weight: bold;
+        border-bottom: 5px solid black;
+        text-shadow: 2px 2px 0px white;
+    }
+
+    .mascot {
+        width: 180px;
+        margin: 20px auto;
+        filter: drop-shadow(0 0 10px #FFB300);
+    }
+
+    .card {
+        background: #fff;
+        color: black;
+        margin: 20px;
+        padding: 20px;
+        border-radius: 15px;
+        border: 4px solid black;
+        font-size: 20px;
+    }
+
+    .progress {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        margin-top: 15px;
+    }
+
+    .stamp {
+        width: 28px;
+        height: 28px;
+        background-size: cover;
+        background-image: url('https://i.imgur.com/8tqgZ8B.png'); /* мини-шаурма */
+        opacity: 0.25;
+        transition: 0.3s;
+    }
+
+    .stamp.active {
+        opacity: 1;
+        filter: drop-shadow(0 0 6px #FF4D00);
+    }
+
+    .btn-cloud {
+        background: white;
+        color: black;
+        border: 4px solid black;
+        border-radius: 40px;
+        padding: 15px;
+        margin: 10px;
+        font-size: 20px;
+        font-weight: bold;
+        width: 80%;
+        cursor: pointer;
+        box-shadow: 4px 4px 0 black;
+    }
+
+    .btn-burst {
+        background: #FFD400;
+        color: black;
+        border: 4px solid black;
+        padding: 15px;
+        margin: 10px;
+        font-size: 22px;
+        font-weight: bold;
+        width: 80%;
+        cursor: pointer;
+        transform: skew(-8deg);
+        box-shadow: 4px 4px 0 black;
+    }
+
+    #qr {
+        margin-top: 15px;
+        width: 180px;
+        border: 4px solid black;
+    }
+
+</style>
+</head>
+
+<body>
+
+<div class="header">ШАУРМА‑ГЕРОЙ</div>
+
+<img class="mascot" id="mascot" src="https://i.imgur.com/8Q2xg5S.png">
+
+<div class="card">
+    <div id="name">Загрузка…</div>
+    <div id="phone"></div>
+
+    <h3>Твои штампы</h3>
+    <div class="progress" id="progress"></div>
+
+    <h3>Баллы ⚡</h3>
+    <div id="points">0</div>
+
+    <h3>Кешбэк 🔥</h3>
+    <div id="cashback">0</div>
+
+    <h3>Твой QR‑код</h3>
+    <img id="qr" src="">
+</div>
+
+<button class="btn-cloud" onclick="loadClient()">Обновить карту</button>
+<button class="btn-burst" onclick="addStamp()">БАМС! +1 штамп</button>
+<button class="btn-burst" onclick="giveGift()">Получить подарок</button>
+
+<script>
+    const API = "ВСТАВЬ_СЮДА_СВОЙ_APPS_SCRIPT_URL";
+
+    // Получаем client_id из Telegram Mini-App
+    const urlParams = new URLSearchParams(window.location.search);
+    const client_id = urlParams.get("id");
+
+    function loadClient() {
+        fetch(`${API}?action=getClient&client_id=${client_id}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    alert("Ошибка: клиент не найден");
+                    return;
+                }
+
+                document.getElementById("name").innerText = data.name;
+                document.getElementById("phone").innerText = "Телефон: ****" + data.phone;
+                document.getElementById("points").innerText = data.points + " ⚡";
+                document.getElementById("cashback").innerText = data.cashback.toFixed(2) + " ₽";
+                document.getElementById("qr").src = data.qr_code;
+
+                renderProgress(data.stamps);
+            });
+    }
+
+    function renderProgress(stamps) {
+        const container = document.getElementById("progress");
+        container.innerHTML = "";
+
+        for (let i = 0; i < 10; i++) {
+            const el = document.createElement("div");
+            el.classList.add("stamp");
+            if (i < stamps) el.classList.add("active");
+            container.appendChild(el);
+        }
+    }
+
+    function addStamp() {
+        fetch(`${API}?action=addStamp&client_id=${client_id}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.result === "gift") {
+                    alert("БАМС‑ФИНАЛ! Бесплатная шаурма!");
+                }
+                loadClient();
+            });
+    }
+
+    function giveGift() {
+        fetch(`${API}?action=giveGift&client_id=${client_id}`)
+            .then(r => r.json())
+            .then(data => {
+                alert(data.message);
+                loadClient();
+            });
+    }
+
+    loadClient();
+</script>
+
+</body>
+</html>
