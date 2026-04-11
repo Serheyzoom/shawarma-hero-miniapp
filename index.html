@@ -29,6 +29,7 @@
         width: 180px;
         margin: 20px auto;
         filter: drop-shadow(0 0 10px #FFB300);
+        transition: transform 0.2s;
     }
 
     .card {
@@ -54,12 +55,14 @@
         background-size: cover;
         background-image: url('https://i.imgur.com/8tqgZ8B.png');
         opacity: 0.25;
-        transition: 0.3s;
+        transition: 0.2s;
+        transform: scale(0.9);
     }
 
     .stamp.active {
         opacity: 1;
         filter: drop-shadow(0 0 6px #FF4D00);
+        transform: scale(1);
     }
 
     .btn-cloud {
@@ -95,12 +98,47 @@
         width: 180px;
         border: 4px solid black;
     }
+
+    .flash {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle, rgba(255,255,0,0.7), transparent);
+        pointer-events: none;
+        animation: flashAnim 0.3s ease-out;
+        z-index: 9998;
+    }
+
+    @keyframes flashAnim {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+
+    .btn-burst.bam {
+        animation: bamShake 0.4s ease-out;
+    }
+
+    @keyframes bamShake {
+        0% { transform: skew(-8deg) translateX(0); }
+        25% { transform: skew(-8deg) translateX(-4px); }
+        50% { transform: skew(-8deg) translateX(4px); }
+        75% { transform: skew(-8deg) translateX(-2px); }
+        100% { transform: skew(-8deg) translateX(0); }
+    }
+
+    .mascot-wow {
+        animation: mascotWow 0.5s ease-out;
+    }
+
+    @keyframes mascotWow {
+        0% { transform: scale(1) rotate(0deg); }
+        50% { transform: scale(1.08) rotate(-3deg); }
+        100% { transform: scale(1) rotate(0deg); }
+    }
 </style>
 </head>
 
 <body>
 
-<!-- ЛОАДЕР -->
 <div id="loader" style="
   position: fixed;
   top: 0; left: 0;
@@ -119,7 +157,7 @@
 
 <div class="header">ШАУРМА‑ГЕРОЙ</div>
 
-<img class="mascot" id="mascot" src="https://copilot.microsoft.com/th/id/BCO.23c754a5-5079-4f0f-9cb1-84c7cdc260fd.png">
+<img class="mascot" id="mascot" src="https://copilot.microsoft.com/th/id/BCO.468a48d9-8965-41b7-96a2-66f3534c2a72.png">
 
 <div class="card">
     <div id="clientName">Загрузка…</div>
@@ -143,12 +181,14 @@
 <button class="btn-burst" onclick="giveGift()">Получить подарок</button>
 
 <script>
-
 const urlParams = new URLSearchParams(window.location.search);
 const clientId = urlParams.get("id");
 const API = "https://script.google.com/macros/s/AKfycbxaMdVg6A1S1y4aXND3wLZvO_Vz_Nc7TcDrDcrmvLYiPpIrarY-5l6lujOCHjadZjjRNA/exec";
 
-// ---------------- ЛОАДЕР ----------------
+const MASCOT_HAPPY = "https://copilot.microsoft.com/th/id/BCO.468a48d9-8965-41b7-96a2-66f3534c2a72.png";
+const MASCOT_SURPRISED = "https://copilot.microsoft.com/th/id/BCO.3f7a8438-052b-40d9-8330-7571ab09af9d.png";
+const MASCOT_ANGRY = "https://copilot.microsoft.com/th/id/BCO.e166c558-8602-4b89-a468-8bf0e177a249.png";
+const MASCOT_SUPER = "https://copilot.microsoft.com/th/id/BCO.a9439df7-4b7a-401d-9c9d-5e8f35887a62.png";
 
 function showLoader() {
   document.getElementById("loader").style.display = "flex";
@@ -158,8 +198,6 @@ function hideLoader() {
   document.getElementById("loader").style.display = "none";
 }
 
-// ---------------- БЛОКИРОВКА КНОПОК ----------------
-
 function disableButtons(state) {
   document.querySelectorAll("button").forEach(btn => {
     btn.disabled = state;
@@ -167,7 +205,43 @@ function disableButtons(state) {
   });
 }
 
-// ---------------- ЗАГРУЗКА КЛИЕНТА ----------------
+function bamEffect() {
+  const flash = document.createElement("div");
+  flash.className = "flash";
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 300);
+
+  const btn = document.querySelector('.btn-burst:nth-of-type(1)');
+  if (btn) {
+    btn.classList.add("bam");
+    setTimeout(() => btn.classList.remove("bam"), 400);
+  }
+
+  const mascot = document.getElementById("mascot");
+  if (mascot) {
+    mascot.classList.add("mascot-wow");
+    setTimeout(() => mascot.classList.remove("mascot-wow"), 500);
+  }
+
+  if (navigator.vibrate) {
+    navigator.vibrate(80);
+  }
+}
+
+function updateMascot(stamps) {
+  const mascot = document.getElementById("mascot");
+  if (!mascot) return;
+
+  if (stamps >= 10) {
+    mascot.src = MASCOT_SUPER;
+  } else if (stamps >= 7) {
+    mascot.src = MASCOT_ANGRY;
+  } else if (stamps >= 3) {
+    mascot.src = MASCOT_HAPPY;
+  } else {
+    mascot.src = MASCOT_SURPRISED;
+  }
+}
 
 async function loadClient() {
   showLoader();
@@ -178,86 +252,3 @@ async function loadClient() {
     const data = await res.json();
 
     hideLoader();
-    disableButtons(false);
-
-    renderClient(data);
-  } catch (e) {
-    hideLoader();
-    disableButtons(false);
-    alert("Ошибка загрузки данных");
-  }
-}
-
-// ---------------- ОТОБРАЖЕНИЕ ДАННЫХ ----------------
-
-function renderClient(data) {
-
-  if (data.error) {
-    document.body.innerHTML = `
-      <div style="padding:40px; text-align:center; font-size:22px;">
-        <b>Клиент не найден</b><br><br>
-        Проверь QR‑код или ID
-      </div>
-    `;
-    return;
-  }
-
-  document.getElementById("clientName").innerText = data.name;
-  document.getElementById("clientPhone").innerText = data.phone;
-
-  // ШТАМПЫ
-  const progress = document.getElementById("progress");
-  progress.innerHTML = "";
-  for (let i = 0; i < 10; i++) {
-    const div = document.createElement("div");
-    div.className = "stamp" + (i < data.stamps ? " active" : "");
-    progress.appendChild(div);
-  }
-
-  document.getElementById("points").innerText = data.points;
-  document.getElementById("cashback").innerText = data.cashback.toFixed(2);
-  document.getElementById("qr").src = data.qr_code;
-}
-
-// ---------------- ДЕЙСТВИЯ ----------------
-
-async function addStamp() {
-  showLoader();
-  disableButtons(true);
-
-  try {
-    const res = await fetch(`${API}?action=addStamp&client_id=${clientId}`);
-    await res.json();
-
-    hideLoader();
-    disableButtons(false);
-    loadClient();
-  } catch (e) {
-    hideLoader();
-    disableButtons(false);
-    alert("Ошибка при добавлении штампа");
-  }
-}
-
-async function giveGift() {
-  showLoader();
-  disableButtons(true);
-
-  try {
-    const res = await fetch(`${API}?action=giveGift&client_id=${clientId}`);
-    await res.json();
-
-    hideLoader();
-    disableButtons(false);
-    loadClient();
-  } catch (e) {
-    hideLoader();
-    disableButtons(false);
-    alert("Ошибка при выдаче подарка");
-  }
-}
-
-</script>
-
-</body>
-</html>
