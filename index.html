@@ -29,6 +29,19 @@
         filter: drop-shadow(0 0 15px #ffea00);
     }
 
+    /* Анимация превращения */
+    .mascot-transform {
+        animation: transformAnim 0.45s ease-out;
+    }
+
+    @keyframes transformAnim {
+        0% { transform: scale(1) rotate(0deg); opacity: 1; }
+        30% { transform: scale(0.6) rotate(-10deg); opacity: 0.3; }
+        60% { transform: scale(1.3) rotate(8deg); opacity: 0.8; }
+        100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    /* Комикс-эффекты */
     .effect {
         position: absolute;
         top: 80px;
@@ -49,17 +62,42 @@
         100% { opacity: 0; transform: translateX(-50%) scale(0.4); }
     }
 
-    .flash {
-        position: fixed;
-        inset: 0;
-        background: rgba(255,255,0,0.4);
-        animation: flashAnim 0.3s ease-out forwards;
+    /* Молнии */
+    .lightning {
+        position: absolute;
+        width: 260px;
+        height: 260px;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: url('https://i.imgur.com/8Kq7Z0F.png') center/contain no-repeat;
+        animation: lightningAnim 0.5s ease-out forwards;
         pointer-events: none;
     }
 
-    @keyframes flashAnim {
-        from { opacity: 1; }
-        to { opacity: 0; }
+    @keyframes lightningAnim {
+        0% { opacity: 0; transform: translateX(-50%) scale(0.5); }
+        50% { opacity: 1; transform: translateX(-50%) scale(1.2); }
+        100% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+    }
+
+    /* Взрыв */
+    .explosion {
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        background: url('https://i.imgur.com/8z6h7zF.png') center/contain no-repeat;
+        animation: explosionAnim 0.6s ease-out forwards;
+        pointer-events: none;
+    }
+
+    @keyframes explosionAnim {
+        0% { opacity: 0; transform: translateX(-50%) scale(0.3); }
+        40% { opacity: 1; transform: translateX(-50%) scale(1.4); }
+        100% { opacity: 0; transform: translateX(-50%) scale(0.8); }
     }
 
     .card {
@@ -198,12 +236,24 @@ function popMascot() {
 
 function setMascot(emotion) {
     const m = document.getElementById("mascot");
+
+    m.classList.add("mascot-transform");
+    setTimeout(() => m.classList.remove("mascot-transform"), 450);
+
     m.src = MASCOT[emotion];
     popMascot();
     showEffect();
 
-    if (emotion === "super") m.classList.add("mascot-glow");
-    else m.classList.remove("mascot-glow");
+    if (emotion === "super") {
+        m.classList.add("mascot-glow");
+
+        const bolt = document.createElement("div");
+        bolt.className = "lightning";
+        document.body.appendChild(bolt);
+        setTimeout(() => bolt.remove(), 500);
+    } else {
+        m.classList.remove("mascot-glow");
+    }
 }
 
 function flash() {
@@ -315,10 +365,25 @@ function renderClient(data) {
 }
 
 function updateMascot(stamps) {
-    if (stamps >= 10) setMascot("super");
-    else if (stamps >= 7) setMascot("angry");
-    else if (stamps >= 3) setMascot("happy");
-    else setMascot("surprised");
+    if (stamps >= 10) {
+        setMascot("super");
+
+        const boom = document.createElement("div");
+        boom.className = "explosion";
+        document.body.appendChild(boom);
+        setTimeout(() => boom.remove(), 600);
+
+        showBubble("LEVEL UP! 🔥");
+    }
+    else if (stamps >= 7) {
+        setMascot("angry");
+    }
+    else if (stamps >= 3) {
+        setMascot("happy");
+    }
+    else {
+        setMascot("surprised");
+    }
 }
 
 async function addStamp() {
