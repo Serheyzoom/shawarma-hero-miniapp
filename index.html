@@ -29,7 +29,6 @@
         filter: drop-shadow(0 0 15px #ffea00);
     }
 
-    /* Анимация превращения */
     .mascot-transform {
         animation: transformAnim 0.45s ease-out;
     }
@@ -41,7 +40,6 @@
         100% { transform: scale(1) rotate(0deg); opacity: 1; }
     }
 
-    /* Комикс-эффекты */
     .effect {
         position: absolute;
         top: 80px;
@@ -62,7 +60,6 @@
         100% { opacity: 0; transform: translateX(-50%) scale(0.4); }
     }
 
-    /* Молнии */
     .lightning {
         position: absolute;
         width: 260px;
@@ -81,7 +78,6 @@
         100% { opacity: 0; transform: translateX(-50%) scale(0.8); }
     }
 
-    /* Взрыв */
     .explosion {
         position: absolute;
         width: 300px;
@@ -115,7 +111,6 @@
         margin: 10px 0;
     }
 
-    /* ШТАМПЫ — PNG, а не кружки */
     .stamp {
         width: 28px;
         height: 28px;
@@ -183,6 +178,26 @@
         from { opacity: 1; }
         to { opacity: 0; }
     }
+
+    .error-effect {
+        position: absolute;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 42px;
+        font-weight: 900;
+        color: #ff0000;
+        text-shadow: 3px 3px 0 #000;
+        opacity: 0;
+        animation: errorBoom 0.7s ease-out forwards;
+        pointer-events: none;
+    }
+
+    @keyframes errorBoom {
+        0% { opacity: 0; transform: translateX(-50%) scale(0.3); }
+        40% { opacity: 1; transform: translateX(-50%) scale(1.3); }
+        100% { opacity: 0; transform: translateX(-50%) scale(0.4); }
+    }
 </style>
 </head>
 
@@ -222,13 +237,11 @@ const clientId = urlParams.get("id");
 
 const API = "https://script.google.com/macros/s/AKfycbxaMdVg6A1S1y4aXND3wLZvO_Vz_Nc7TcDrDcrmvLYiPpIrarY-5l6lujOCHjadZjjRNA/exec";
 
-/* Маскоты */
 const MASCOT = {
     happy: "https://github.com/Serheyzoom/shawarma-hero-miniapp/blob/main/радостного%20маскота.png?raw=true",
     surprised: "https://github.com/Serheyzoom/shawarma-hero-miniapp/blob/main/Генерируй%20удивлённог.png?raw=true",
     angry: "https://github.com/Serheyzoom/shawarma-hero-miniapp/blob/main/боевой%20маскот.png?raw=true",
-    super: "https://github.com/Serheyzoom/shawarma-hero-miniapp/blob/main/супер%E2%80%91героя.png?raw=true",
-    stamp: "https://github.com/Serheyzoom/shawarma-hero-miniapp/blob/main/тамп.png?raw=true"
+    super: "https://github.com/Serheyzoom/shawarma-hero-miniapp/blob/main/супер%E2%80%91героя.png?raw=true"
 };
 
 const EFFECTS = ["WOW!", "POP!", "BOOM!", "ZAP!", "BANG!"];
@@ -241,6 +254,14 @@ function showEffect() {
     div.textContent = EFFECTS[Math.floor(Math.random() * EFFECTS.length)];
     document.getElementById("effect-container").appendChild(div);
     setTimeout(() => div.remove(), 600);
+}
+
+function showErrorEffect() {
+    const div = document.createElement("div");
+    div.className = "error-effect";
+    div.textContent = "❌ BOOM! Не хватает штампов";
+    document.getElementById("effect-container").appendChild(div);
+    setTimeout(() => div.remove(), 700);
 }
 
 function popMascot() {
@@ -282,16 +303,18 @@ function flash() {
 
 function bamEffect() {
     flash();
-    setMascot("angry");
-    if (navigator.vibrate) navigator.vibrate(80);
     showBubble("БАМС! +1 штамп");
 }
 
 function giftEffect() {
     flash();
-    setMascot("super");
-    if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
-    showBubble("ПЫЩ! Подарок!");
+
+    const boom = document.createElement("div");
+    boom.className = "explosion";
+    document.body.appendChild(boom);
+    setTimeout(() => boom.remove(), 600);
+
+    showBubble("LEVEL UP! 🔥");
 }
 
 /* ------------------ UI ------------------ */
@@ -342,22 +365,12 @@ function renderClient(data) {
     document.getElementById("clientPhone").innerText = data.phone;
 
     const progress = document.getElementById("progress");
-    const oldStamps = progress.querySelectorAll(".stamp.active").length || 0;
-
     progress.innerHTML = "";
-    for (let i = 0; i < 10; i++) {
-        const div = document.createElement("div");
-        div.className = "stamp" + (i < data.stamps ? " active" : "");
-        progress.appendChild(div);
-    }
 
-    if (data.stamps > oldStamps) {
-        const stamps = progress.querySelectorAll(".stamp");
-        const idx = data.stamps - 1;
-        if (stamps[idx]) {
-            stamps[idx].classList.add("pop");
-            setTimeout(() => stamps[idx].classList.remove("pop"), 400);
-        }
+    for (let i = 0; i < data.stamps; i++) {
+        const div = document.createElement("div");
+        div.className = "stamp active";
+        progress.appendChild(div);
     }
 
     document.getElementById("points").innerText = data.points;
@@ -367,18 +380,11 @@ function renderClient(data) {
     updateMascot(data.stamps);
 }
 
-/* ------------------ ЛОГИКА МАСКОТА ПО ШТАМПАМ ------------------ */
+/* ------------------ ЛОГИКА МАСКОТА ------------------ */
 
 function updateMascot(stamps) {
     if (stamps >= 10) {
         setMascot("super");
-
-        const boom = document.createElement("div");
-        boom.className = "explosion";
-        document.body.appendChild(boom);
-        setTimeout(() => boom.remove(), 600);
-
-        showBubble("LEVEL UP! 🔥");
     }
     else if (stamps >= 7) {
         setMascot("angry");
@@ -389,6 +395,23 @@ function updateMascot(stamps) {
     else {
         setMascot("surprised");
     }
+}
+
+/* ------------------ АНИМАЦИЯ СПИСАНИЯ 10 ШТАМПОВ ------------------ */
+
+function animateStampRemoval() {
+    const stamps = document.querySelectorAll(".stamp.active");
+    const count = stamps.length;
+
+    const toRemove = Array.from(stamps).slice(count - 10, count);
+
+    toRemove.forEach((stamp, i) => {
+        setTimeout(() => {
+            stamp.classList.add("pop");
+            stamp.style.opacity = "0";
+            setTimeout(() => stamp.remove(), 300);
+        }, i * 80);
+    });
 }
 
 /* ------------------ ДЕЙСТВИЯ ------------------ */
@@ -411,10 +434,25 @@ async function giveGift() {
     disableButtons(true);
 
     try {
-        await fetch(`${API}?action=giveGift&client_id=${clientId}`);
+        const res = await fetch(`${API}?action=getClient&client_id=${clientId}`);
+        const data = await res.json();
+
+        if (data.stamps < 10) {
+            disableButtons(false);
+            showErrorEffect();
+            return;
+        }
+
+        animateStampRemoval();
         giftEffect();
-        disableButtons(false);
-        loadClient();
+
+        await fetch(`${API}?action=remove10&client_id=${clientId}`);
+
+        setTimeout(() => {
+            disableButtons(false);
+            loadClient();
+        }, 1200);
+
     } catch {
         disableButtons(false);
         alert("Ошибка при выдаче подарка");
