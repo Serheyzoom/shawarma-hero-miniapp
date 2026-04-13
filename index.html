@@ -115,15 +115,19 @@
         margin: 10px 0;
     }
 
+    /* ШТАМПЫ — PNG, а не кружки */
     .stamp {
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        background: #ddd;
+        width: 28px;
+        height: 28px;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        opacity: 0.25;
     }
 
     .stamp.active {
-        background: #ffb300;
+        opacity: 1;
+        background-image: url("https://github.com/Serheyzoom/shawarma-hero-miniapp/blob/main/тамп.png?raw=true");
     }
 
     .stamp.pop {
@@ -166,6 +170,19 @@
         50% { opacity: 1; }
         100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
     }
+
+    .flash {
+        position: fixed;
+        inset: 0;
+        background: rgba(255,255,0,0.4);
+        animation: flashAnim 0.3s ease-out forwards;
+        pointer-events: none;
+    }
+
+    @keyframes flashAnim {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
 </style>
 </head>
 
@@ -205,7 +222,7 @@ const clientId = urlParams.get("id");
 
 const API = "https://script.google.com/macros/s/AKfycbxaMdVg6A1S1y4aXND3wLZvO_Vz_Nc7TcDrDcrmvLYiPpIrarY-5l6lujOCHjadZjjRNA/exec";
 
-/* Новые маскоты */
+/* Маскоты */
 const MASCOT = {
     happy: "https://github.com/Serheyzoom/shawarma-hero-miniapp/blob/main/радостного%20маскота.png?raw=true",
     surprised: "https://github.com/Serheyzoom/shawarma-hero-miniapp/blob/main/Генерируй%20удивлённог.png?raw=true",
@@ -215,8 +232,6 @@ const MASCOT = {
 };
 
 const EFFECTS = ["WOW!", "POP!", "BOOM!", "ZAP!", "BANG!"];
-const emotions = ["happy", "surprised", "angry", "super"];
-let autoIndex = 0;
 
 /* ------------------ ЭФФЕКТЫ ------------------ */
 
@@ -262,18 +277,6 @@ function flash() {
     document.body.appendChild(f);
     setTimeout(() => f.remove(), 300);
 }
-
-/* ------------------ АВТОСМЕНА ЭМОЦИЙ ------------------ */
-
-setInterval(() => {
-    autoIndex = (autoIndex + 1) % emotions.length;
-    setMascot(emotions[autoIndex]);
-}, 4000);
-
-document.getElementById("mascot").onclick = () => {
-    autoIndex = (autoIndex + 1) % emotions.length;
-    setMascot(emotions[autoIndex]);
-};
 
 /* ------------------ ВСПЫШКИ ------------------ */
 
@@ -364,6 +367,8 @@ function renderClient(data) {
     updateMascot(data.stamps);
 }
 
+/* ------------------ ЛОГИКА МАСКОТА ПО ШТАМПАМ ------------------ */
+
 function updateMascot(stamps) {
     if (stamps >= 10) {
         setMascot("super");
@@ -385,6 +390,8 @@ function updateMascot(stamps) {
         setMascot("surprised");
     }
 }
+
+/* ------------------ ДЕЙСТВИЯ ------------------ */
 
 async function addStamp() {
     disableButtons(true);
